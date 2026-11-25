@@ -77,6 +77,19 @@ async function github(path, token, method = 'GET', body) {
   return data;
 }
 const publishTimes = new Map();
+const searchTimes = new Map();
+let activeSearches = 0;
+function allowSearch(req, res) {
+  const ip = req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const last = searchTimes.get(ip) || 0;
+  if (now - last < 15000) { send(res, 429, {error:'Trop de recherches. Attends 15 secondes.'}); return false; }
+  if (activeSearches >= 3) { send(res, 503, {error:'Le service de recherche est occupé. Réessaie bientôt.'}); return false; }
+  searchTimes.set(ip, now);
+  if (searchTimes.size > 5000) for (const [key, time] of searchTimes) if (now - time > 60000) searchTimes.delete(key);
+  activeSearches++;
+  return true;
+}
 async function publishSite(req, res) {
   if (!process.env.GITHUB_TOKEN || !process.env.GITHUB_OWNER || !process.env.PUBLISH_API_KEY) return send(res, 503, {error:'Publication non configurée. Ajoute GITHUB_TOKEN, GITHUB_OWNER et PUBLISH_API_KEY dans Render.'});
   if (req.headers['x-viralstudio-key'] !== process.env.PUBLISH_API_KEY) return send(res, 401, {error:'Clé de publication invalide.'});
@@ -91,7 +104,12 @@ async function publishSite(req, res) {
     if (!name || !slug || !content.startsWith('<!doctype html>') || content.length > 900000) return send(res, 400, {error:'Nom, identifiant et HTML valide requis (maximum 900 Ko).'});
     const owner = process.env.GITHUB_OWNER;
     let repo;
-    try { repo = await github('/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(slug), process.env.GITHUB_TOKEN); }
+    try {
+      repo = await github('/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(slug), process.env.GITHUB_TOKEN);
+      if (repo.owner?.login?.toLowerCase() !== owner.toLowerCase() || !String(repo.description || '').startsWith('Site web créé par ViralStudio pour ')) {
+        return send(res, 409, {error:'Ce nom de dépôt existe déjà et ne semble pas appartenir à ViralStudio. Choisis un autre identifiant pour éviter d’écraser un dépôt existant.'});
+      }
+    }
     catch (e) {
       if (e.status !== 404) throw e;
       repo = await github('/user/repos', process.env.GITHUB_TOKEN, 'POST', {name:slug, description:'Site web créé par ViralStudio pour ' + name, homepage:'https://' + owner + '.github.io/' + slug + '/', private:false, auto_init:true});
@@ -116,12 +134,15 @@ async function publishSite(req, res) {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'OPTIONS') { res.writeHead(204, {'Access-Control-Allow-Origin':'https://sjasiak464-bit.github.io','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, X-ViralStudio-Key','Vary':'Origin'}); return res.end(); }
-  if (url.pathname === '/health' && req.method === 'GET') { let leadCount = null; if (pool) { try { await ensureSchema(); const count = await pool.query('SELECT COUNT(*)::int AS total FROM leads'); leadCount = count.rows[0].total; } catch (e) { return send(res, 503, {ok:false, service:'ViralStudio API', database:true, databaseError:'Lecture de la base impossible.'}); } } return send(res, 200, {ok:true, service:'ViralStudio API', features:['business-search','github-pages-publishing','postgres-crm'], database:!!pool, leadCount}); }
+  if (url.pathname === '/health' && req.method === 'GET') { if (pool) { try { await pool.query('SELECT 1'); } catch (e) { return send(res, 503, {ok:false, service:'ViralStudio API', database:false}); } } return send(res, 200, {ok:true, service:'ViralStudio API', database:!!pool}); }
   if (url.pathname === '/api/search' && req.method === 'GET') {
     const category = clean(url.searchParams.get('category')), city = clean(url.searchParams.get('city'));
     if (!category || !city) return send(res, 400, {error:'Catégorie et ville obligatoires.'});
+    if (category.length > 60 || city.length > 80) return send(res, 400, {error:'Catégorie ou ville trop longue.'});
+    if (!allowSearch(req,res)) return;
     try { const results = await search(category, city); return send(res, 200, {results,count:results.length,source:'OpenStreetMap',note:'Les fiches peuvent être incomplètes. Vérifie chaque entreprise et son site avant de la contacter.'}); }
     catch (e) { return send(res, 502, {error:e.message || 'Recherche impossible.'}); }
+    finally { activeSearches = Math.max(0, activeSearches - 1); }
   }
 
   if (url.pathname === '/api/discover' && req.method === 'POST') {
