@@ -1,4 +1,5 @@
 const http = require('http');
+const { spawn } = require('child_process');
 const { Pool } = require('pg');
 const pool = process.env.DATABASE_URL ? new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}}) : null;
 let schemaReady;
@@ -123,6 +124,7 @@ http.createServer(async (req, res) => {
     catch (e) { return send(res, 502, {error:e.message || 'Recherche impossible.'}); }
   }
 
+  if (url.pathname === '/api/discover' && req.method === 'POST') { if (!requireCrm(req,res)) return; try { const child=spawn(process.execPath,['discovery-worker.js'],{detached:true,stdio:'ignore',env:process.env}); child.unref(); return send(res,202,{ok:true,message:'Recherche lancée en arrière-plan.'}); } catch(e) { return send(res,500,{error:'Impossible de lancer la recherche.'}); } }
   if (url.pathname.startsWith('/api/leads')) {
     if (!requireCrm(req,res)) return;
     try {
@@ -139,7 +141,7 @@ http.createServer(async (req, res) => {
           for (const p of b.leads) {
             if (!String(p.company||'').trim()) continue;
             const exists = await pool.query('SELECT id FROM leads WHERE lower(company)=lower($1) AND lower(email)=lower($2) LIMIT 1',[String(p.company),String(p.email||'')]);
-            if (!exists.rowCount) await pool.query('INSERT INTO leads(company,email,website,kind,amount,notes,status) VALUES($1,$2,$3,$4,$5,$6,$7)',[String(p.company).slice(0,200),String(p.email||'').slice(0,320),String(p.website||'').slice(0,500),String(p.kind||'').slice(0,120),Math.max(0,Number(p.amount)||0),String(p.notes||'').slice(0,5000),String(p.status||'À contacter').slice(0,80)]);
+            if (exists.rowCount) await pool.query('UPDATE leads SET website=$1,kind=$2,amount=$3,notes=$4,status=$5,updated_at=NOW() WHERE id=$6',[String(p.website||'').slice(0,500),String(p.kind||'').slice(0,120),Math.max(0,Number(p.amount)||0),String(p.notes||'').slice(0,5000),String(p.status||'À contacter').slice(0,80),exists.rows[0].id]); else await pool.query('INSERT INTO leads(company,email,website,kind,amount,notes,status) VALUES($1,$2,$3,$4,$5,$6,$7)',[String(p.company).slice(0,200),String(p.email||'').slice(0,320),String(p.website||'').slice(0,500),String(p.kind||'').slice(0,120),Math.max(0,Number(p.amount)||0),String(p.notes||'').slice(0,5000),String(p.status||'À contacter').slice(0,80)]);
           }
           await pool.query('COMMIT');
         } catch(e) { await pool.query('ROLLBACK'); throw e; }
