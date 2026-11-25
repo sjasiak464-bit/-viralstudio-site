@@ -1,4 +1,9 @@
 const http = require('http');
+const { Pool } = require('pg');
+const pool = process.env.DATABASE_URL ? new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}}) : null;
+let schemaReady;
+async function ensureSchema(){if(!pool)throw new Error('Base de données non configurée (DATABASE_URL).');if(!schemaReady)schemaReady=pool.query("CREATE TABLE IF NOT EXISTS leads (id BIGSERIAL PRIMARY KEY, company TEXT NOT NULL, email TEXT DEFAULT '', website TEXT DEFAULT '', kind TEXT DEFAULT '', amount NUMERIC(12,2) DEFAULT 0, notes TEXT DEFAULT '', status TEXT DEFAULT 'À contacter', updated_at TIMESTAMPTZ DEFAULT NOW())").catch(e=>{schemaReady=null;throw e});await schemaReady;}
+function requireCrm(req,res){if(!process.env.CRM_API_KEY){send(res,503,{error:'Clé CRM non configurée.'});return false;}if(req.headers['x-viralstudio-key']!==process.env.CRM_API_KEY){send(res,401,{error:'Clé CRM invalide.'});return false;}return true;}
 const PORT = process.env.PORT || 3000;
 const GITHUB_API = 'https://api.github.com';
 const send = (res, status, data) => {
@@ -110,13 +115,39 @@ async function publishSite(req, res) {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'OPTIONS') { res.writeHead(204, {'Access-Control-Allow-Origin':'https://sjasiak464-bit.github.io','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, X-ViralStudio-Key','Vary':'Origin'}); return res.end(); }
-  if (url.pathname === '/health' && req.method === 'GET') return send(res, 200, {ok:true, service:'ViralStudio API', features:['business-search','github-pages-publishing']});
+  if (url.pathname === '/health' && req.method === 'GET') return send(res, 200, {ok:true, service:'ViralStudio API', features:['business-search','github-pages-publishing','postgres-crm'], database:!!pool});
   if (url.pathname === '/api/search' && req.method === 'GET') {
     const category = clean(url.searchParams.get('category')), city = clean(url.searchParams.get('city'));
     if (!category || !city) return send(res, 400, {error:'Catégorie et ville obligatoires.'});
     try { const results = await search(category, city); return send(res, 200, {results,count:results.length,source:'OpenStreetMap',note:'Les fiches peuvent être incomplètes. Vérifie chaque entreprise et son site avant de la contacter.'}); }
     catch (e) { return send(res, 502, {error:e.message || 'Recherche impossible.'}); }
   }
+
+  if (url.pathname.startsWith('/api/leads')) {
+    if (!requireCrm(req,res)) return;
+    try {
+      await ensureSchema();
+      if (url.pathname === '/api/leads' && req.method === 'GET') {
+        const r = await pool.query('SELECT id,company,email,website,kind,amount,notes,status FROM leads ORDER BY updated_at DESC');
+        return send(res,200,{leads:r.rows});
+      }
+      if (url.pathname === '/api/leads' && req.method === 'POST') {
+        const b = await readBody(req,200000);
+        if (!Array.isArray(b.leads) || b.leads.length > 2000) return send(res,400,{error:'Liste invalide.'});
+        await pool.query('BEGIN');
+        try {
+          for (const p of b.leads) {
+            if (!String(p.company||'').trim()) continue;
+            const exists = await pool.query('SELECT id FROM leads WHERE lower(company)=lower($1) AND lower(email)=lower($2) LIMIT 1',[String(p.company),String(p.email||'')]);
+            if (!exists.rowCount) await pool.query('INSERT INTO leads(company,email,website,kind,amount,notes,status) VALUES($1,$2,$3,$4,$5,$6,$7)',[String(p.company).slice(0,200),String(p.email||'').slice(0,320),String(p.website||'').slice(0,500),String(p.kind||'').slice(0,120),Math.max(0,Number(p.amount)||0),String(p.notes||'').slice(0,5000),String(p.status||'À contacter').slice(0,80)]);
+          }
+          await pool.query('COMMIT');
+        } catch(e) { await pool.query('ROLLBACK'); throw e; }
+        return send(res,200,{ok:true});
+      }
+    } catch(e) { return send(res,500,{error:e.message||'Erreur CRM.'}); }
+  }
+
   if (url.pathname === '/api/publish' && req.method === 'POST') return publishSite(req,res);
   return send(res, 404, {error:'Not found'});
 }).listen(PORT, '0.0.0.0', () => console.log('ViralStudio API ready on port ' + PORT));
