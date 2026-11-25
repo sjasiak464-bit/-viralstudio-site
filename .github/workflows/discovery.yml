@@ -7,12 +7,6 @@ jobs:
   discover:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: node discovery-worker.js
-        env:
-          DATABASE_URL: ${{ secrets.VIRALSTUDIO_DATABASE_URL }}
-          SEARCH_CITIES: Montreal,Laval,Longueuil,Sainte-Martine,Chateauguay,Valleyfield,Quebec
+      - name: Start scheduled prospect discovery
+        run: |
+          curl --fail --silent --show-error -X POST https://viralstudio-api.onrender.com/api/discover -H "X-ViralStudio-Key: ${{ secrets.VIRALSTUDIO_CRM_KEY }}"
