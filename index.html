@@ -1,90 +1,40 @@
-
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ViralStudio AI</title>
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101322"><title>ViralStudio AI</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#10131d;color:#f5f6fa;font-family:Arial,sans-serif}
-header{padding:24px;background:#191f30;border-bottom:1px solid #30394d}
-h1{margin:0;color:#8b7cff}
-main{max-width:900px;margin:auto;padding:20px}
-.card{background:#1b2233;padding:20px;border-radius:14px;margin:16px 0}
-input,button,select{padding:12px;border-radius:8px;border:1px solid #414b63;margin:5px 0;font-size:15px}
-input,select{background:#101725;color:white;width:100%}
-button{background:#7665ef;color:white;border:0;font-weight:bold}
-button:active{opacity:.8}
-.stat{font-size:28px;font-weight:bold;color:#a99cff}
-.prospect{padding:12px;border-bottom:1px solid #394156}
-small{color:#aeb5c7}
-</style>
-</head>
-<body>
-<header>
-<h1>ViralStudio AI</h1>
-<p>Ton centre de prospection et de création de sites web</p>
-</header>
-<main>
-<div class="card">
-<h2>Tableau de bord</h2>
-<p>Prospects enregistrés</p>
-<div class="stat" id="count">0</div>
-<small>Ton activité commerciale</small>
-</div>
-
-<div class="card">
-<h2>Ajouter une entreprise</h2>
-<input id="company" placeholder="Nom de l'entreprise">
-<input id="email" type="email" placeholder="Courriel professionnel">
-<input id="website" placeholder="Site web (ou aucun)">
-<button onclick="addProspect()">Ajouter le prospect</button>
-</div>
-
-<div class="card">
-<h2>Mes prospects</h2>
-<div id="list">Aucun prospect pour le moment.</div>
-</div>
-
-<div class="card">
-<h2>Prochaines automatisations</h2>
-<p>🔎 Recherche d'entreprises</p>
-<p>✉️ Préparation des offres par Gmail</p>
-<p>🌐 Création de sites personnalisés</p>
-<p>📊 Suivi des réponses et des ventes</p>
-<small>Ces connexions restent à configurer.</small>
-</div>
-</main>
+:root{--bg:#0d1020;--panel:#191f33;--line:#303a58;--txt:#f5f6ff;--muted:#aab2ca;--accent:#9485ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px system-ui,Arial}header{padding:20px max(18px,calc((100% - 1080px)/2));background:#151a2c;border-bottom:1px solid var(--line)}h1{margin:0;color:var(--accent)}main{max-width:1080px;margin:auto;padding:20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px;margin:12px 0}label{display:block;color:var(--muted);font-size:13px;margin:10px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid #3c4665;border-radius:8px;background:#101629;color:white;font:inherit}textarea{min-height:100px}button{padding:10px 14px;border:0;border-radius:8px;background:#7868ec;color:white;font-weight:700;cursor:pointer;margin:5px 5px 5px 0}.secondary{background:#303956}.danger{background:#66313e}.stat{font-size:30px;color:var(--accent);font-weight:800}.muted,small{color:var(--muted)}.item{padding:12px 0;border-bottom:1px solid var(--line)}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}.tabs button{background:#303956}.tabs button.active{background:#7868ec}.hidden{display:none}.note{padding:11px;border-left:3px solid var(--accent);background:#222741;border-radius:7px;color:#d8dced;font-size:13px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.preview{background:white;border-radius:9px;overflow:hidden}.preview iframe{width:100%;height:420px;border:0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stats .card{margin:0}@media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<header><h1>ViralStudio AI</h1><div class="muted">Prospection · Offres · Création de sites · Suivi clients</div></header>
+<main><h2>Ton agence, au même endroit.</h2><div class="stats">
+<div class="card"><small>Prospects</small><div class="stat" id="total">0</div></div><div class="card"><small>À contacter</small><div class="stat" id="todo">0</div></div><div class="card"><small>Clients gagnés</small><div class="stat" id="won">0</div></div><div class="card"><small>Valeur estimée</small><div class="stat" id="value">0 $</div></div></div>
+<div class="tabs"><button class="active" data-tab="crm">Prospects</button><button data-tab="offers">Offres / courriels</button><button data-tab="builder">Créateur de sites</button><button data-tab="search">Recherche</button></div>
+<section id="crm" class="grid">
+<div class="card"><h3>Ajouter un prospect</h3><label>Entreprise *</label><input id="company" placeholder="Nom de l'entreprise"><label>Courriel</label><input id="email" type="email" placeholder="contact@entreprise.ca"><label>Site web</label><input id="website" placeholder="URL ou Aucun"><label>Type d'entreprise</label><input id="kind" placeholder="Restaurant, garage…"><label>Valeur estimée ($)</label><input id="amount" type="number" min="0" placeholder="800"><label>Notes</label><textarea id="notes" placeholder="Besoins, personne contact…"></textarea><button id="add">Ajouter</button></div>
+<div class="card"><div class="row"><h3>Mes prospects</h3><input id="query" placeholder="Rechercher"></div><label>Filtrer par statut</label><select id="filter"><option value="">Tous</option><option>À contacter</option><option>Offre préparée</option><option>Contacté</option><option>En discussion</option><option>Client gagné</option><option>Refusé</option></select><div id="list"></div><button class="secondary" id="export">Exporter CSV</button></div></section>
+<section id="offers" class="grid hidden"><div class="card"><h3>Créer une offre</h3><label>Prospect</label><select id="pick"></select><label>Service</label><select id="service"><option>Site web vitrine</option><option>Refonte de site web</option><option>Page de réservation</option><option>Site web et référencement local</option></select><label>Prix ($)</label><input id="price" type="number" value="799"><label>Avantage client</label><textarea id="benefit">Un site professionnel adapté au mobile pour présenter vos services et faciliter les demandes de vos clients.</textarea><button id="generateOffer">Préparer le courriel</button></div><div class="card"><h3>Courriel à vérifier</h3><textarea id="draft" style="min-height:300px" placeholder="Ton offre apparaîtra ici."></textarea><button id="openMail" disabled>Ouvrir dans Gmail / Courriel</button><button class="secondary" id="copy">Copier</button><p class="note">Aucun message n'est envoyé automatiquement. Vérifie toujours le contenu et le destinataire avant l'envoi.</p></div></section>
+<section id="builder" class="grid hidden"><div class="card"><h3>Maquette de site client</h3><label>Entreprise</label><input id="biz" placeholder="Nom de l'entreprise"><label>Activité</label><input id="biztype" placeholder="Ex. restaurant"><label>Ville</label><input id="city" placeholder="Ville, région"><label>Description</label><textarea id="description" placeholder="Présente les services…"></textarea><label>Coordonnées</label><input id="contact" placeholder="Téléphone ou courriel"><label>Couleur</label><input id="color" type="color" value="#6558d3"><button id="build">Générer l'aperçu</button></div><div class="card"><h3>Aperçu</h3><div class="preview"><iframe id="frame" title="Aperçu de site" sandbox=""></iframe></div><button id="download" disabled>Télécharger le site HTML</button></div></section>
+<section id="search" class="grid hidden"><div class="card"><h3>Repérer des entreprises</h3><p class="muted">Effectue une recherche ciblée, vérifie manuellement les résultats et ajoute les entreprises intéressantes dans tes prospects.</p><label>Type d'entreprise</label><input id="searchKind" placeholder="Ex. plombier, restaurant"><label>Ville / région</label><input id="searchCity" placeholder="Ex. Sainte-Martine, Québec"><button id="google">Chercher sur Google</button><button class="secondary" id="maps">Chercher sur Maps</button></div><div class="card"><h3>État des fonctions</h3><p>✓ Gestion et suivi des prospects</p><p>✓ Préparation d'offres personnalisées</p><p>✓ Maquette HTML téléchargeable</p><p>✓ Export CSV</p><p class="note">La recherche ouvre Google : elle ne collecte pas automatiquement les entreprises. L'envoi Gmail automatisé, la synchronisation cloud et la détection automatique des entreprises sans site nécessitent un backend et des autorisations qui ne sont pas encore configurés.</p></div></section>
+<p class="note">Les données sont sauvegardées dans le stockage local de ce navigateur sur cet appareil. Exporte régulièrement tes prospects en CSV. Cette version n'est pas encore un agent autonome.</p></main>
 <script>
-let prospects=JSON.parse(localStorage.getItem("viralProspects")||"[]");
-function render(){
-document.getElementById("count").textContent=prospects.length;
-document.getElementById("list").innerHTML=prospects.length?
-prospects.map((p,i)=>`<div class="prospect"><b>${escapeText(p.company)}</b><br><small>${escapeText(p.email)} · ${escapeText(p.website||"Aucun site indiqué")}</small><br><button onclick="removeProspect(${i})">Supprimer</button></div>`).join("")
-:"Aucun prospect pour le moment.";
+const KEY='viralstudioCRM_v1';let leads=[];try{leads=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){leads=[]}
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function persist(){localStorage.setItem(KEY,JSON.stringify(leads));render()}
+function render(){ $('total').textContent=leads.length;$('todo').textContent=leads.filter(x=>['À contacter','Offre préparée'].includes(x.status)).length;$('won').textContent=leads.filter(x=>x.status==='Client gagné').length;$('value').textContent=leads.reduce((n,x)=>n+(x.status==='Refusé'?0:Number(x.amount)||0),0).toLocaleString('fr-CA')+' $';
+let q=$('query').value.toLowerCase(),f=$('filter').value,items=leads.map((p,i)=>({...p,i})).filter(p=>(!f||p.status===f)&&[p.company,p.email,p.kind,p.notes].join(' ').toLowerCase().includes(q));
+$('list').innerHTML=items.length?items.map(p=>'<div class="item"><b>'+esc(p.company)+'</b> <small>· '+esc(p.kind||'')+'</small><br><small>'+esc(p.email||'Courriel absent')+' · '+esc(p.website||'Site non précisé')+' · '+Number(p.amount||0)+' $</small><p>'+esc(p.notes||'')+'</p><div class="row"><select data-status="'+p.i+'">'+['À contacter','Offre préparée','Contacté','En discussion','Client gagné','Refusé'].map(s=>'<option '+(p.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select><button class="danger" data-delete="'+p.i+'">Supprimer</button></div></div>').join(''):'<p class="muted">Aucun prospect trouvé.</p>';
+$('pick').innerHTML='<option value="">Choisir une entreprise</option>'+leads.map((p,i)=>'<option value="'+i+'">'+esc(p.company)+'</option>').join('');
 }
-function escapeText(s){
-return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function addProspect(){
-let company=document.getElementById("company").value.trim();
-let email=document.getElementById("email").value.trim();
-let website=document.getElementById("website").value.trim();
-if(!company){alert("Entre le nom de l'entreprise.");return;}
-prospects.push({company,email,website});
-localStorage.setItem("viralProspects",JSON.stringify(prospects));
-document.getElementById("company").value="";
-document.getElementById("email").value="";
-document.getElementById("website").value="";
+$('add').onclick=()=>{let company=$('company').value.trim();if(!company){alert("Entre le nom de l'entreprise.");return}leads.push({company,email:$('email').value.trim(),website:$('website').value.trim(),kind:$('kind').value.trim(),amount:$('amount').value,notes:$('notes').value.trim(),status:'À contacter'});['company','email','website','kind','amount','notes'].forEach(id=>$(id).value='');persist()};
+$('list').addEventListener('change',e=>{if(e.target.dataset.status!==undefined){leads[Number(e.target.dataset.status)].status=e.target.value;persist()}});
+$('list').addEventListener('click',e=>{if(e.target.dataset.delete!==undefined&&confirm('Supprimer ce prospect ?')){leads.splice(Number(e.target.dataset.delete),1);persist()}});
+$('query').oninput=render;$('filter').onchange=render;
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));['crm','offers','builder','search'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab))});
+$('generateOffer').onclick=()=>{let i=$('pick').value;if(i===''){alert('Choisis un prospect.');return}let p=leads[Number(i)],price=$('price').value;let text='Bonjour '+p.company+',\n\nJe vous contacte pour vous proposer un service de '+$('service').value.toLowerCase()+'.\n\n'+$('benefit').value+'\n\nLe prix proposé est de '+price+' $.\n\nSeriez-vous disponible pour en discuter ?\n\nAu plaisir,\nViralStudio';$('draft').value=text;leads[Number(i)].status='Offre préparée';persist();$('openMail').disabled=!p.email};
+$('openMail').onclick=()=>{let p=leads[Number($('pick').value)];if(!p||!p.email){alert('Ajoute le courriel du prospect.');return}location.href='mailto:'+encodeURIComponent(p.email)+'?subject='+encodeURIComponent('Proposition de services web — ViralStudio')+'&body='+encodeURIComponent($('draft').value)};
+$('copy').onclick=()=>{navigator.clipboard?.writeText($('draft').value).then(()=>alert('Courriel copié.')).catch(()=>alert('Copie non disponible sur ce navigateur.'))};
+$('export').onclick=()=>{let rows=[['Entreprise','Courriel','Site','Type','Valeur','Statut','Notes'],...leads.map(p=>[p.company,p.email,p.website,p.kind,p.amount,p.status,p.notes])];let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='viralstudio-prospects.csv';a.click();URL.revokeObjectURL(a.href)};
+let siteFile='';$('build').onclick=()=>{let name=$('biz').value.trim()||'Votre entreprise',type=$('biztype').value.trim()||'Nos services',city=$('city').value.trim(),desc=$('description').value.trim()||'Découvrez nos services et contactez-nous pour en savoir plus.',contact=$('contact').value.trim(),color=$('color').value;siteFile='<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(name)+'</title><style>body{margin:0;font:17px Arial;color:#202438}header{background:'+color+';color:white;padding:70px 8%;}main{padding:45px 8%;max-width:850px;margin:auto}a{color:'+color+';font-weight:bold}</style><header><h1>'+esc(name)+'</h1><p>'+esc(type)+(city?' · '+esc(city):'')+'</p></header><main><h2>Bienvenue</h2><p>'+esc(desc)+'</p><h2>Contact</h2><p>'+esc(contact||'Ajoutez vos coordonnées avant publication.')+'</p></main></html>';$('frame').srcdoc=siteFile;$('download').disabled=false};
+$('download').onclick=()=>{if(!siteFile)return;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([siteFile],{type:'text/html'}));a.download='site-client.html';a.click();URL.revokeObjectURL(a.href)};
+function searchUrl(base){let k=$('searchKind').value.trim(),c=$('searchCity').value.trim();if(!k||!c){alert('Entre le type d’entreprise et la ville.');return}window.open(base+encodeURIComponent(k+' '+c+' entreprise'),'_blank','noopener')}
+$('google').onclick=()=>searchUrl('https://www.google.com/search?q=');$('maps').onclick=()=>searchUrl('https://www.google.com/maps/search/');
 render();
-}
-function removeProspect(i){
-prospects.splice(i,1);
-localStorage.setItem("viralProspects",JSON.stringify(prospects));
-render();
-}
-render();
-</script>
-</body>
-</html>
+</script></body></html>
