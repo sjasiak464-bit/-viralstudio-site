@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViralStudio AI</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131d;color:#f5f6fa;font-family:Arial,sans-serif}
+header{padding:24px;background:#191f30;border-bottom:1px solid #30394d}
+h1{margin:0;color:#8b7cff}
+main{max-width:900px;margin:auto;padding:20px}
+.card{background:#1b2233;padding:20px;border-radius:14px;margin:16px 0}
+input,button,select{padding:12px;border-radius:8px;border:1px solid #414b63;margin:5px 0;font-size:15px}
+input,select{background:#101725;color:white;width:100%}
+button{background:#7665ef;color:white;border:0;font-weight:bold}
+button:active{opacity:.8}
+.stat{font-size:28px;font-weight:bold;color:#a99cff}
+.prospect{padding:12px;border-bottom:1px solid #394156}
+small{color:#aeb5c7}
+</style>
+</head>
+<body>
+<header>
+<h1>ViralStudio AI</h1>
+<p>Ton centre de prospection et de création de sites web</p>
+</header>
+<main>
+<div class="card">
+<h2>Tableau de bord</h2>
+<p>Prospects enregistrés</p>
+<div class="stat" id="count">0</div>
+<small>Ton activité commerciale</small>
+</div>
+
+<div class="card">
+<h2>Ajouter une entreprise</h2>
+<input id="company" placeholder="Nom de l'entreprise">
+<input id="email" type="email" placeholder="Courriel professionnel">
+<input id="website" placeholder="Site web (ou aucun)">
+<button onclick="addProspect()">Ajouter le prospect</button>
+</div>
+
+<div class="card">
+<h2>Mes prospects</h2>
+<div id="list">Aucun prospect pour le moment.</div>
+</div>
+
+<div class="card">
+<h2>Prochaines automatisations</h2>
+<p>🔎 Recherche d'entreprises</p>
+<p>✉️ Préparation des offres par Gmail</p>
+<p>🌐 Création de sites personnalisés</p>
+<p>📊 Suivi des réponses et des ventes</p>
+<small>Ces connexions restent à configurer.</small>
+</div>
+</main>
+<script>
+let prospects=JSON.parse(localStorage.getItem("viralProspects")||"[]");
+function render(){
+document.getElementById("count").textContent=prospects.length;
+document.getElementById("list").innerHTML=prospects.length?
+prospects.map((p,i)=>`<div class="prospect"><b>${escapeText(p.company)}</b><br><small>${escapeText(p.email)} · ${escapeText(p.website||"Aucun site indiqué")}</small><br><button onclick="removeProspect(${i})">Supprimer</button></div>`).join("")
+:"Aucun prospect pour le moment.";
+}
+function escapeText(s){
+return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function addProspect(){
+let company=document.getElementById("company").value.trim();
+let email=document.getElementById("email").value.trim();
+let website=document.getElementById("website").value.trim();
+if(!company){alert("Entre le nom de l'entreprise.");return;}
+prospects.push({company,email,website});
+localStorage.setItem("viralProspects",JSON.stringify(prospects));
+document.getElementById("company").value="";
+document.getElementById("email").value="";
+document.getElementById("website").value="";
+render();
+}
+function removeProspect(i){
+prospects.splice(i,1);
+localStorage.setItem("viralProspects",JSON.stringify(prospects));
+render();
+}
+render();
+</script>
+</body>
+</html>
