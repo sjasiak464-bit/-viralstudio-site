@@ -116,7 +116,7 @@ async function publishSite(req, res) {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'OPTIONS') { res.writeHead(204, {'Access-Control-Allow-Origin':'https://sjasiak464-bit.github.io','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, X-ViralStudio-Key','Vary':'Origin'}); return res.end(); }
-  if (url.pathname === '/health' && req.method === 'GET') return send(res, 200, {ok:true, service:'ViralStudio API', features:['business-search','github-pages-publishing','postgres-crm'], database:!!pool});
+  if (url.pathname === '/health' && req.method === 'GET') { let leadCount = null; if (pool) { try { await ensureSchema(); const count = await pool.query('SELECT COUNT(*)::int AS total FROM leads'); leadCount = count.rows[0].total; } catch (e) { return send(res, 503, {ok:false, service:'ViralStudio API', database:true, databaseError:'Lecture de la base impossible.'}); } } return send(res, 200, {ok:true, service:'ViralStudio API', features:['business-search','github-pages-publishing','postgres-crm'], database:!!pool, leadCount}); }
   if (url.pathname === '/api/search' && req.method === 'GET') {
     const category = clean(url.searchParams.get('category')), city = clean(url.searchParams.get('city'));
     if (!category || !city) return send(res, 400, {error:'Catégorie et ville obligatoires.'});
