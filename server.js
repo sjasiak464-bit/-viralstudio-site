@@ -124,7 +124,29 @@ http.createServer(async (req, res) => {
     catch (e) { return send(res, 502, {error:e.message || 'Recherche impossible.'}); }
   }
 
-  if (url.pathname === '/api/discover' && req.method === 'POST') { if (!requireCrm(req,res)) return; try { const child=spawn(process.execPath,['discovery-worker.js'],{detached:true,stdio:'ignore',env:process.env}); child.unref(); return send(res,202,{ok:true,message:'Recherche lancée en arrière-plan.'}); } catch(e) { return send(res,500,{error:'Impossible de lancer la recherche.'}); } }
+  if (url.pathname === '/api/discover' && req.method === 'POST') {
+    if (!requireCrm(req,res)) return;
+    try {
+      await ensureSchema();
+      await pool.query("CREATE TABLE IF NOT EXISTS discovery_runs (id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'running', started_at TIMESTAMPTZ DEFAULT NOW(), finished_at TIMESTAMPTZ, added INTEGER DEFAULT 0, errors INTEGER DEFAULT 0, message TEXT DEFAULT '')");
+      const active = await pool.query("SELECT id FROM discovery_runs WHERE status='running' AND started_at > NOW() - INTERVAL '2 hours' LIMIT 1");
+      if (active.rowCount) return send(res,409,{error:'Une recherche est déjà en cours.',runId:active.rows[0].id});
+      const runId = require('crypto').randomUUID();
+      await pool.query("INSERT INTO discovery_runs(id,status,message) VALUES($1,'running','Recherche démarrée')",[runId]);
+      const child=spawn(process.execPath,['discovery-worker.js'],{detached:true,stdio:'ignore',env:{...process.env,VIRALSTUDIO_RUN_ID:runId}});
+      child.on('error',async e=>{await pool.query("UPDATE discovery_runs SET status='failed',finished_at=NOW(),message=$2 WHERE id=$1",[runId,String(e.message).slice(0,500)]).catch(()=>{});});
+      child.unref();
+      return send(res,202,{ok:true,runId,message:'Recherche lancée en arrière-plan.'});
+    } catch(e) { return send(res,500,{error:'Impossible de lancer la recherche.'}); }
+  }
+  if (url.pathname === '/api/discovery-status' && req.method === 'GET') {
+    if (!requireCrm(req,res)) return;
+    try {
+      await ensureSchema();
+      const r=await pool.query("SELECT id,status,started_at,finished_at,added,errors,message FROM discovery_runs ORDER BY started_at DESC LIMIT 1");
+      return send(res,200,{run:r.rows[0]||null});
+    } catch(e) { return send(res,500,{error:'État de recherche indisponible.'}); }
+  }
   if (url.pathname.startsWith('/api/leads')) {
     if (!requireCrm(req,res)) return;
     try {
